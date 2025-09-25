@@ -24,22 +24,23 @@ interface PredictionResult {
   timestamp: string;
 }
 
-interface SensorReading {
-  sensor: string;
-  value: number;
-  processed: number;
+interface BiomarkerReading {
+  compound: string;
+  concentration: number;
+  normalized: number;
   contribution: number;
+  confidence: number;
 }
 
 export const RealTimePredictor = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [currentPrediction, setCurrentPrediction] = useState<PredictionResult | null>(null);
   const [predictionHistory, setPredictionHistory] = useState<PredictionResult[]>([]);
-  const [sensorReadings, setSensorReadings] = useState<SensorReading[]>([
-    { sensor: 'MQ-135', value: 245, processed: 0.73, contribution: 0.24 },
-    { sensor: 'MQ-3', value: 189, processed: 0.82, contribution: 0.45 },
-    { sensor: 'TGS-822', value: 156, processed: 0.65, contribution: 0.18 },
-    { sensor: 'DHT-11', value: 34.2, processed: 0.58, contribution: 0.13 }
+  const [biomarkerReadings, setBiomarkerReadings] = useState<BiomarkerReading[]>([
+    { compound: 'Acetone', concentration: 2.45, normalized: 0.73, contribution: 0.42, confidence: 0.89 },
+    { compound: 'Ammonia', concentration: 1.89, normalized: 0.82, contribution: 0.38, confidence: 0.94 },
+    { compound: 'Ethanol', concentration: 0.56, normalized: 0.65, contribution: 0.15, confidence: 0.76 },
+    { compound: 'Isoprene', concentration: 0.34, normalized: 0.58, contribution: 0.05, confidence: 0.68 }
   ]);
   const { toast } = useToast();
 
@@ -48,12 +49,13 @@ export const RealTimePredictor = () => {
     if (!isRunning) return;
 
     const interval = setInterval(() => {
-      // Simulate sensor reading updates
-      setSensorReadings(prev => prev.map(reading => ({
+      // Simulate biomarker concentration updates
+      setBiomarkerReadings(prev => prev.map(reading => ({
         ...reading,
-        value: reading.value + (Math.random() - 0.5) * 20,
-        processed: Math.max(0, Math.min(1, reading.processed + (Math.random() - 0.5) * 0.1)),
-        contribution: Math.max(0, Math.min(1, reading.contribution + (Math.random() - 0.5) * 0.1))
+        concentration: Math.max(0, reading.concentration + (Math.random() - 0.5) * 0.2),
+        normalized: Math.max(0, Math.min(1, reading.normalized + (Math.random() - 0.5) * 0.1)),
+        contribution: Math.max(0, Math.min(1, reading.contribution + (Math.random() - 0.5) * 0.08)),
+        confidence: Math.max(0.5, Math.min(1, reading.confidence + (Math.random() - 0.5) * 0.05))
       })));
 
       // Generate prediction
@@ -228,35 +230,54 @@ export const RealTimePredictor = () => {
           </CardContent>
         </Card>
 
-        {/* Sensor Contributions */}
+        {/* Biomarker Analysis */}
         <Card className="medical-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="w-5 h-5" />
-              Sensor Contributions
+              Biomarker Analysis
             </CardTitle>
             <CardDescription>
-              How each sensor influences the prediction
+              Key volatile organic compounds and their diagnostic significance
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {sensorReadings.map((reading, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">{reading.sensor}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Raw: {reading.value.toFixed(1)} • Processed: {reading.processed.toFixed(2)}
+              {biomarkerReadings.map((reading, index) => (
+                <div key={index} className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="font-semibold">{reading.compound}</div>
+                        <Badge variant="outline" className="text-xs">
+                          {(reading.confidence * 100).toFixed(0)}% confidence
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Concentration: {reading.concentration.toFixed(2)} ppm • Normalized: {reading.normalized.toFixed(2)}
                       </div>
                     </div>
-                    <div className="text-sm font-bold">
-                      {(reading.contribution * 100).toFixed(1)}%
+                    <div className="text-right">
+                      <div className="text-sm font-bold text-primary">
+                        {(reading.contribution * 100).toFixed(1)}%
+                      </div>
+                      <div className="text-xs text-muted-foreground">influence</div>
                     </div>
                   </div>
-                  <Progress value={reading.contribution * 100} className="h-2" />
+                  <div className="space-y-1">
+                    <Progress value={reading.contribution * 100} className="h-2" />
+                    <Progress value={reading.confidence * 100} className="h-1 opacity-50" />
+                  </div>
                 </div>
               ))}
+            </div>
+            <div className="mt-6 p-3 bg-muted/30 rounded-lg">
+              <div className="text-sm font-medium mb-2">AI Model Insights</div>
+              <div className="text-xs text-muted-foreground">
+                The neural network identifies acetone elevation as the primary diagnostic indicator, 
+                with ammonia levels providing secondary confirmation. Confidence intervals suggest 
+                high reliability in current prediction.
+              </div>
             </div>
           </CardContent>
         </Card>

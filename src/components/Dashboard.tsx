@@ -17,59 +17,64 @@ import {
   TrendingUp,
   BarChart3
 } from 'lucide-react';
-import { SensorReadingCard } from './SensorReadingCard';
 import { PatientList } from './PatientList';
 import { MLModelTraining } from './MLModelTraining';
 import { RealTimePredictor } from './RealTimePredictor';
 import { DataCollection } from './DataCollection';
+import { AIAnalyticsCard } from './AIAnalyticsCard';
 
-interface SensorData {
+interface BiomarkerData {
   id: string;
   name: string;
-  value: number;
+  concentration: number;
   unit: string;
-  status: 'normal' | 'warning' | 'critical';
-  target: string;
+  status: 'normal' | 'elevated' | 'critical';
+  diseaseAssociation: string;
   icon: React.ReactNode;
+  change: number;
 }
 
 export const Dashboard = () => {
-  const [sensorData, setSensorData] = useState<SensorData[]>([
+  const [biomarkerData, setBiomarkerData] = useState<BiomarkerData[]>([
     {
-      id: 'mq135',
-      name: 'MQ-135',
-      value: 245,
+      id: 'acetone',
+      name: 'Acetone',
+      concentration: 2.45,
       unit: 'ppm',
-      status: 'normal',
-      target: 'NH₃, CO₂, Benzene',
-      icon: <Wind className="w-5 h-5" />
+      status: 'elevated',
+      diseaseAssociation: 'Diabetes, Ketosis',
+      icon: <Activity className="w-5 h-5" />,
+      change: +12.5
     },
     {
-      id: 'mq3',
-      name: 'MQ-3',
-      value: 189,
-      unit: 'ppm',
-      status: 'warning',
-      target: 'Acetone, Ethanol',
-      icon: <Activity className="w-5 h-5" />
-    },
-    {
-      id: 'tgs822',
-      name: 'TGS-822',
-      value: 156,
+      id: 'ammonia',
+      name: 'Ammonia',
+      concentration: 1.89,
       unit: 'ppm',
       status: 'normal',
-      target: 'Organic Solvents',
-      icon: <BarChart3 className="w-5 h-5" />
+      diseaseAssociation: 'Kidney Disease',
+      icon: <Wind className="w-5 h-5" />,
+      change: -3.2
     },
     {
-      id: 'dht11',
-      name: 'DHT-11',
-      value: 34.2,
-      unit: '°C',
+      id: 'ethanol',
+      name: 'Ethanol',
+      concentration: 0.56,
+      unit: 'ppm',
       status: 'normal',
-      target: 'Temperature',
-      icon: <Thermometer className="w-5 h-5" />
+      diseaseAssociation: 'Metabolic Disorders',
+      icon: <Droplets className="w-5 h-5" />,
+      change: +1.8
+    },
+    {
+      id: 'isoprene',
+      name: 'Isoprene',
+      concentration: 0.34,
+      unit: 'ppm',
+      status: 'normal',
+      diseaseAssociation: 'Lung Function',
+      icon: <BarChart3 className="w-5 h-5" />,
+      change: -0.5
     }
   ]);
 
@@ -80,15 +85,47 @@ export const Dashboard = () => {
     dataPoints: 15420
   });
 
-  // Simulate real-time sensor updates
+  const [aiInsights] = useState([
+    {
+      id: '1',
+      title: 'Acetone Pattern Recognition',
+      description: 'Detected recurring acetone elevation pattern consistent with early-stage diabetes indicators. Model suggests 89% correlation with glucose metabolism disruption.',
+      confidence: 89,
+      severity: 'medium' as const,
+      category: 'pattern' as const
+    },
+    {
+      id: '2',
+      title: 'Anomaly Detection Alert',
+      description: 'Unusual ammonia concentration spike detected in recent samples. This may indicate kidney function irregularities requiring medical attention.',
+      confidence: 94,
+      severity: 'high' as const,
+      category: 'anomaly' as const
+    },
+    {
+      id: '3',
+      title: 'Cross-Biomarker Correlation',
+      description: 'Strong negative correlation identified between isoprene and acetone levels, suggesting compensatory metabolic pathways activation.',
+      confidence: 76,
+      severity: 'low' as const,
+      category: 'correlation' as const
+    }
+  ]);
+
+  // Simulate real-time biomarker updates
   useEffect(() => {
     const interval = setInterval(() => {
-      setSensorData(prev => prev.map(sensor => ({
-        ...sensor,
-        value: sensor.value + (Math.random() - 0.5) * 10,
-        status: Math.random() > 0.8 ? 'warning' : 'normal'
-      })));
-    }, 2000);
+      setBiomarkerData(prev => prev.map(biomarker => {
+        const newConcentration = Math.max(0, biomarker.concentration + (Math.random() - 0.5) * 0.2);
+        const change = ((newConcentration - biomarker.concentration) / biomarker.concentration) * 100;
+        return {
+          ...biomarker,
+          concentration: newConcentration,
+          change: change,
+          status: newConcentration > biomarker.concentration * 1.2 ? 'elevated' : 'normal'
+        };
+      }));
+    }, 3000);
 
     return () => clearInterval(interval);
   }, []);
@@ -176,50 +213,95 @@ export const Dashboard = () => {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="sensors" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="sensors">Live Sensors</TabsTrigger>
-            <TabsTrigger value="collection">Data Collection</TabsTrigger>
-            <TabsTrigger value="patients">Patients</TabsTrigger>
-            <TabsTrigger value="training">ML Training</TabsTrigger>
-            <TabsTrigger value="prediction">Prediction</TabsTrigger>
+        <Tabs defaultValue="biomarkers" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="biomarkers">Live Biomarkers</TabsTrigger>
+            <TabsTrigger value="collection">Data Processing</TabsTrigger>
+            <TabsTrigger value="training">AI Training</TabsTrigger>
+            <TabsTrigger value="prediction">Real-time Analysis</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="sensors" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sensorData.map((sensor) => (
-                <SensorReadingCard
-                  key={sensor.id}
-                  sensor={sensor}
-                />
+          <TabsContent value="biomarkers" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {biomarkerData.map((biomarker) => (
+                <Card key={biomarker.id} className="medical-card hover:shadow-elevated transition-all duration-300">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{biomarker.name}</CardTitle>
+                    {biomarker.icon}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold mb-2">
+                      {biomarker.concentration.toFixed(2)} <span className="text-sm font-normal">{biomarker.unit}</span>
+                    </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <Badge 
+                        variant={biomarker.status === 'elevated' ? 'destructive' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {biomarker.status}
+                      </Badge>
+                      <div className={`text-xs font-medium ${biomarker.change > 0 ? 'text-destructive' : 'text-success'}`}>
+                        {biomarker.change > 0 ? '+' : ''}{biomarker.change.toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Associated: {biomarker.diseaseAssociation}
+                    </div>
+                    <Progress 
+                      value={Math.min(100, (biomarker.concentration / 5) * 100)} 
+                      className="mt-2 h-1" 
+                    />
+                  </CardContent>
+                </Card>
               ))}
             </div>
             
-            <Card className="medical-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Sensor Trends
-                </CardTitle>
-                <CardDescription>
-                  Real-time monitoring of VOC biomarkers
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  Live sensor chart visualization would appear here
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="medical-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Biomarker Trends
+                  </CardTitle>
+                  <CardDescription>
+                    Real-time concentration patterns and anomaly detection
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Trend Analysis</span>
+                      <Badge variant="outline">Last 24h</Badge>
+                    </div>
+                    <div className="h-32 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg flex items-center justify-center">
+                      <div className="text-muted-foreground text-sm">Interactive trend visualization</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <div className="font-medium">Peak Detection</div>
+                        <div className="text-muted-foreground">3 anomalies found</div>
+                      </div>
+                      <div>
+                        <div className="font-medium">Correlation</div>
+                        <div className="text-muted-foreground">Strong acetone-glucose link</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <AIAnalyticsCard 
+                insights={aiInsights}
+                modelAccuracy={systemStats.modelAccuracy}
+                processingTime={156}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="collection">
             <DataCollection />
           </TabsContent>
 
-          <TabsContent value="patients">
-            <PatientList />
-          </TabsContent>
 
           <TabsContent value="training">
             <MLModelTraining />

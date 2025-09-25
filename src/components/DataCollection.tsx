@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,22 +7,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Play, 
-  Square, 
+  Upload, 
+  Database, 
   Save, 
   User, 
-  Calendar, 
-  Timer,
   FileText,
   Activity,
-  Database
+  Brain,
+  Zap,
+  Cloud,
+  Download,
+  BarChart3,
+  Sparkles,
+  Globe
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export const DataCollection = () => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingProgress, setRecordingProgress] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [apiData, setApiData] = useState({
+    endpoint: '',
+    apiKey: '',
+    format: 'json'
+  });
   const [patientData, setPatientData] = useState({
     patientId: '',
     age: '',
@@ -32,39 +43,67 @@ export const DataCollection = () => {
   });
   const { toast } = useToast();
 
-  const startRecording = () => {
-    setIsRecording(true);
-    setRecordingProgress(0);
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      toast({
+        title: "File Selected",
+        description: `${file.name} ready for processing`,
+      });
+    }
+  }, [toast]);
+
+  const processData = () => {
+    setIsProcessing(true);
+    setProcessingProgress(0);
     
-    // Simulate recording progress
+    // Simulate AI processing
     const interval = setInterval(() => {
-      setRecordingProgress(prev => {
+      setProcessingProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval);
-          setIsRecording(false);
+          setIsProcessing(false);
           toast({
-            title: "Recording Complete",
-            description: "Breath sample has been collected and saved.",
+            title: "Processing Complete",
+            description: "Breath biomarker data has been analyzed and integrated.",
           });
           return 100;
         }
-        return prev + 2;
+        return prev + 3;
       });
-    }, 100);
+    }, 150);
 
     toast({
-      title: "Recording Started",
-      description: "Please have the patient exhale into the sensor chamber.",
+      title: "AI Processing Started",
+      description: "Analyzing breath biomarker patterns with machine learning models.",
     });
   };
 
-  const stopRecording = () => {
-    setIsRecording(false);
-    setRecordingProgress(0);
-    toast({
-      title: "Recording Stopped",
-      description: "Data collection has been terminated.",
-    });
+  const fetchApiData = async () => {
+    setIsProcessing(true);
+    try {
+      toast({
+        title: "Fetching Data",
+        description: "Connecting to external breath analysis APIs...",
+      });
+      
+      // Simulate API call
+      setTimeout(() => {
+        setIsProcessing(false);
+        toast({
+          title: "Data Retrieved",
+          description: "Successfully imported breath biomarker data from API.",
+        });
+      }, 2000);
+    } catch (error) {
+      setIsProcessing(false);
+      toast({
+        title: "Connection Failed",
+        description: "Unable to connect to external API. Please check credentials.",
+        variant: "destructive"
+      });
+    }
   };
 
   const saveSession = () => {
@@ -75,7 +114,7 @@ export const DataCollection = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="space-y-6">
       {/* Patient Information */}
       <Card className="medical-card">
         <CardHeader>
@@ -84,11 +123,11 @@ export const DataCollection = () => {
             Patient Information
           </CardTitle>
           <CardDescription>
-            Enter patient details for this data collection session
+            Enter patient details for this data analysis session
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="patientId">Patient ID</Label>
               <Input
@@ -108,9 +147,6 @@ export const DataCollection = () => {
                 onChange={(e) => setPatientData({...patientData, age: e.target.value})}
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="gender">Gender</Label>
               <Select value={patientData.gender} onValueChange={(value) => setPatientData({...patientData, gender: value})}>
@@ -125,7 +161,7 @@ export const DataCollection = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="condition">Condition</Label>
+              <Label htmlFor="condition">Target Condition</Label>
               <Select value={patientData.condition} onValueChange={(value) => setPatientData({...patientData, condition: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select condition" />
@@ -136,6 +172,7 @@ export const DataCollection = () => {
                   <SelectItem value="kidney">Kidney Disease</SelectItem>
                   <SelectItem value="copd">COPD</SelectItem>
                   <SelectItem value="asthma">Asthma</SelectItem>
+                  <SelectItem value="lung_cancer">Lung Cancer</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -143,133 +180,329 @@ export const DataCollection = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">Clinical Notes</Label>
             <Textarea
               id="notes"
-              placeholder="Any additional notes about the patient or session..."
+              placeholder="Patient history, symptoms, medications, lifestyle factors..."
               value={patientData.notes}
               onChange={(e) => setPatientData({...patientData, notes: e.target.value})}
+              rows={3}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Recording Controls */}
+      {/* Data Sources */}
+      <Tabs defaultValue="file" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="file" className="flex items-center gap-2">
+            <Upload className="w-4 h-4" />
+            File Upload
+          </TabsTrigger>
+          <TabsTrigger value="api" className="flex items-center gap-2">
+            <Globe className="w-4 h-4" />
+            API Integration
+          </TabsTrigger>
+          <TabsTrigger value="synthetic" className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4" />
+            Synthetic Data
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="file" className="space-y-6">
+          <Card className="medical-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                Upload Breath Analysis Data
+              </CardTitle>
+              <CardDescription>
+                Import CSV, JSON, or Excel files containing breath biomarker measurements
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="border-2 border-dashed border-primary/20 rounded-lg p-8 text-center space-y-4 hover:border-primary/40 transition-colors">
+                <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Drop files here or click to browse</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Supports CSV, JSON, XLSX files up to 50MB
+                  </p>
+                  <Input
+                    type="file"
+                    accept=".csv,.json,.xlsx"
+                    onChange={handleFileUpload}
+                    className="max-w-xs mx-auto"
+                  />
+                </div>
+              </div>
+
+              {uploadedFile && (
+                <div className="flex items-center justify-between p-4 bg-success/10 border border-success/20 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-success" />
+                    <div>
+                      <div className="font-medium">{uploadedFile.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </div>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="bg-success/10 text-success">
+                    Ready to Process
+                  </Badge>
+                </div>
+              )}
+
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={processData}
+                  disabled={!uploadedFile || isProcessing}
+                  className="medical-button"
+                  size="lg"
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                  {isProcessing ? 'Processing...' : 'Analyze Data'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="api" className="space-y-6">
+          <Card className="medical-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="w-5 h-5" />
+                External API Integration
+              </CardTitle>
+              <CardDescription>
+                Connect to breath analysis devices or cloud platforms
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="endpoint">API Endpoint</Label>
+                  <Input
+                    id="endpoint"
+                    placeholder="https://api.breathanalyzer.com/v1/data"
+                    value={apiData.endpoint}
+                    onChange={(e) => setApiData({...apiData, endpoint: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="apiKey">API Key</Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder="Enter your API key"
+                    value={apiData.apiKey}
+                    onChange={(e) => setApiData({...apiData, apiKey: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="format">Data Format</Label>
+                <Select value={apiData.format} onValueChange={(value) => setApiData({...apiData, format: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="json">JSON</SelectItem>
+                    <SelectItem value="xml">XML</SelectItem>
+                    <SelectItem value="csv">CSV</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={fetchApiData}
+                  disabled={!apiData.endpoint || !apiData.apiKey || isProcessing}
+                  className="medical-button"
+                  size="lg"
+                >
+                  <Cloud className="w-4 h-4 mr-2" />
+                  {isProcessing ? 'Connecting...' : 'Fetch Data'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="synthetic" className="space-y-6">
+          <Card className="medical-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5" />
+                AI-Generated Synthetic Data
+              </CardTitle>
+              <CardDescription>
+                Generate realistic breath biomarker data for testing and validation
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Sample Size</Label>
+                  <Select defaultValue="100">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="50">50 samples</SelectItem>
+                      <SelectItem value="100">100 samples</SelectItem>
+                      <SelectItem value="500">500 samples</SelectItem>
+                      <SelectItem value="1000">1000 samples</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Noise Level</Label>
+                  <Select defaultValue="low">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low (5%)</SelectItem>
+                      <SelectItem value="medium">Medium (10%)</SelectItem>
+                      <SelectItem value="high">High (20%)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Disease Distribution</Label>
+                  <Select defaultValue="balanced">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="balanced">Balanced</SelectItem>
+                      <SelectItem value="imbalanced">Imbalanced</SelectItem>
+                      <SelectItem value="healthy_only">Healthy Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={processData}
+                  disabled={isProcessing}
+                  className="medical-button"
+                  size="lg"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  {isProcessing ? 'Generating...' : 'Generate Dataset'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Processing Status */}
+      {isProcessing && (
+        <Card className="medical-card">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-center gap-2">
+                <div className="status-indicator bg-primary animate-pulse"></div>
+                <span className="font-medium">AI Processing in Progress...</span>
+              </div>
+              <Progress value={processingProgress} className="h-3" />
+              <div className="text-sm text-muted-foreground text-center">
+                {processingProgress.toFixed(0)}% Complete • Analyzing biomarker patterns
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Data Processing */}
       <Card className="medical-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            Data Recording
-          </CardTitle>
-          <CardDescription>
-            Control breath sample collection and monitoring
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Recording Status */}
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-2">
-              <div className={`status-indicator ${isRecording ? 'bg-destructive' : 'bg-muted'}`}></div>
-              <span className="font-medium">
-                {isRecording ? 'Recording in Progress' : 'Ready to Record'}
-              </span>
-            </div>
-            
-            {isRecording && (
-              <div className="space-y-2">
-                <Progress value={recordingProgress} className="h-3" />
-                <div className="text-sm text-muted-foreground">
-                  {recordingProgress.toFixed(0)}% Complete
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Control Buttons */}
-          <div className="flex gap-3 justify-center">
-            {!isRecording ? (
-              <Button
-                onClick={startRecording}
-                className="medical-button"
-                size="lg"
-              >
-                <Play className="w-4 h-4 mr-2" />
-                Start Recording
-              </Button>
-            ) : (
-              <Button
-                onClick={stopRecording}
-                variant="destructive"
-                size="lg"
-              >
-                <Square className="w-4 h-4 mr-2" />
-                Stop Recording
-              </Button>
-            )}
-            
-            <Button
-              onClick={saveSession}
-              variant="outline"
-              size="lg"
-              disabled={isRecording}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save Session
-            </Button>
-          </div>
-
-          {/* Session Stats */}
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">5</div>
-              <div className="text-xs text-muted-foreground">Samples Today</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-secondary">12.5</div>
-              <div className="text-xs text-muted-foreground">Avg Duration (s)</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-accent">98.2%</div>
-              <div className="text-xs text-muted-foreground">Success Rate</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Collections */}
-      <Card className="medical-card lg:col-span-2">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
             <Database className="w-5 h-5" />
-            Recent Collections
+            Recent Data Processing
           </CardTitle>
           <CardDescription>
-            Latest breath samples collected from patients
+            Latest breath biomarker datasets processed by the AI system
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {[
-              { id: 'P001_S03', patient: 'P001', condition: 'Diabetes', time: '2 min ago', status: 'Processed' },
-              { id: 'P005_S01', patient: 'P005', condition: 'Healthy', time: '5 min ago', status: 'Processing' },
-              { id: 'P003_S02', patient: 'P003', condition: 'COPD', time: '8 min ago', status: 'Processed' },
-              { id: 'P007_S01', patient: 'P007', condition: 'Kidney Disease', time: '12 min ago', status: 'Processed' },
+              { 
+                id: 'DS_2024_001', 
+                source: 'File Upload', 
+                samples: '1,250', 
+                conditions: 'Diabetes, Healthy', 
+                time: '5 min ago', 
+                status: 'Processed',
+                accuracy: '96.8%'
+              },
+              { 
+                id: 'DS_2024_002', 
+                source: 'API Integration', 
+                samples: '2,100', 
+                conditions: 'COPD, Asthma, Healthy', 
+                time: '12 min ago', 
+                status: 'Processing',
+                accuracy: 'N/A'
+              },
+              { 
+                id: 'DS_2024_003', 
+                source: 'Synthetic Data', 
+                samples: '5,000', 
+                conditions: 'Multi-class', 
+                time: '1 hour ago', 
+                status: 'Processed',
+                accuracy: '98.2%'
+              },
+              { 
+                id: 'DS_2024_004', 
+                source: 'File Upload', 
+                samples: '875', 
+                conditions: 'Kidney Disease, Healthy', 
+                time: '2 hours ago', 
+                status: 'Processed',
+                accuracy: '94.5%'
+              },
             ].map((record) => (
-              <div key={record.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
+              <div key={record.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                  </div>
                   <div>
-                    <div className="font-medium">{record.id}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Patient {record.patient} • {record.condition}
+                    <div className="font-semibold">{record.id}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {record.samples} samples • {record.conditions}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Source: {record.source}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-xs text-muted-foreground">{record.time}</div>
-                  <Badge variant={record.status === 'Processed' ? 'default' : 'secondary'}>
-                    {record.status}
-                  </Badge>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="text-sm font-medium">{record.accuracy}</div>
+                    <div className="text-xs text-muted-foreground">accuracy</div>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant={record.status === 'Processed' ? 'default' : 'secondary'}>
+                      {record.status}
+                    </Badge>
+                    <div className="text-xs text-muted-foreground mt-1">{record.time}</div>
+                  </div>
+                  <Button variant="ghost" size="sm">
+                    <Download className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             ))}
