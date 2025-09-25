@@ -27,15 +27,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Get initial user
-    authHelpers.getCurrentUser().then(setUser)
+    authHelpers.getCurrentUser().then((user) => {
+      setUser(user as User)
+      setLoading(false)
+    })
 
     // Listen for auth changes
-    const { data: { subscription } } = authHelpers.onAuthStateChange((event, session) => {
+    const authListener = authHelpers.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    // Handle cleanup for different return types (demo vs real)
+    return () => {
+      try {
+        if (authListener && typeof authListener === 'object') {
+          if ('data' in authListener && authListener.data?.subscription?.unsubscribe) {
+            authListener.data.subscription.unsubscribe()
+          } else if ('unsubscribe' in authListener && typeof authListener.unsubscribe === 'function') {
+            authListener.unsubscribe()
+          }
+        }
+      } catch (error) {
+        // Ignore cleanup errors in demo mode
+        console.log('Auth cleanup error (safe to ignore in demo mode):', error)
+      }
+    }
   }, [])
 
   const signUp = async (email: string, password: string) => {
